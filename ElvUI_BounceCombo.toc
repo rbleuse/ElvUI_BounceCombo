@@ -1,0 +1,7 @@
+## Interface: 50500
+## Title: |cff1784d1ElvUI|r Bounce Combo
+## Author: Spanja
+## Version: 1.0
+## RequiredDeps: ElvUI
+
+ElvUI_BounceCombo.lua
