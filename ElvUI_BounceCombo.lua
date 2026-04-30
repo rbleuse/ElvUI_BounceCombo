@@ -1,4 +1,4 @@
-local E, L, V, P, G = unpack(ElvUI)
+local E, L, _, P = unpack(ElvUI)
 local EP = E:NewModule("ComboBounce", "AceHook-3.0", "AceEvent-3.0")
 
 P.comboBounce = {
@@ -57,10 +57,7 @@ function EP:PostUpdateClassPower(element, cur, _, _, powerType)
         if point then
             CreateBounceAnimation(point)
 
-            if point.bounceAnim:IsPlaying() then
-                point.bounceAnim:Finish()
-            end
-
+            point.bounceAnim:Stop()
             point.bounceAnim:Play()
         end
     end
@@ -70,13 +67,12 @@ end
 
 -- Refresh all existing animations when options change
 function EP:UpdateAllSettings()
-    db = E.db.comboBounce
     local playerFrame = _G.ElvUF_Player
     if playerFrame and playerFrame.ClassPower then
         local element = playerFrame.ClassPower
 
         for i = 1, #element do
-            local point = element[i] or (element.buttons and element.buttons[i])
+            local point = element[i]
             UpdateAnimationSettings(point)
         end
     end
@@ -84,14 +80,13 @@ end
 
 -- Hook safely after UI loads
 function EP:HookClassPower()
-    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-
     local playerFrame = _G.ElvUF_Player
-    if playerFrame and playerFrame.ClassPower then
-        if not self:IsHooked(playerFrame.ClassPower, "PostUpdate") then
-            self:SecureHook(playerFrame.ClassPower, "PostUpdate", "PostUpdateClassPower")
-        end
+    if not (playerFrame and playerFrame.ClassPower) then return end
+
+    if not self:IsHooked(playerFrame.ClassPower, "PostUpdate") then
+        self:SecureHook(playerFrame.ClassPower, "PostUpdate", "PostUpdateClassPower")
     end
+    self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 end
 
 function EP:InsertOptions()
@@ -100,10 +95,10 @@ function EP:InsertOptions()
     E.Options.args.comboBounce = {
         order = 100,
         type = "group",
-        name = "Combo Bounce",
-        get = function(info) return E.db.comboBounce[info[#info]] end,
-        set = function(info, value) 
-            E.db.comboBounce[info[#info]] = value 
+        name = L["Combo Bounce"],
+        get = function(info) return db[info[#info]] end,
+        set = function(info, value)
+            db[info[#info]] = value
             EP:UpdateAllSettings()
         end,
         args = {
@@ -117,14 +112,14 @@ function EP:InsertOptions()
                 type = "range",
                 name = L["Scale"],
                 min = 1.1, max = 2.0, step = 0.01,
-                disabled = function() return not E.db.comboBounce.enable end,
+                disabled = function() return not db.enable end,
             },
             duration = {
                 order = 3,
                 type = "range",
                 name = L["Speed"],
                 min = 0.01, max = 0.5, step = 0.01,
-                disabled = function() return not E.db.comboBounce.enable end,
+                disabled = function() return not db.enable end,
             },
         },
     }
