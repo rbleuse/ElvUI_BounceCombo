@@ -1,7 +1,7 @@
 local E, L, _, P = unpack(ElvUI)
-local EP = E:NewModule("ComboBounce", "AceHook-3.0", "AceEvent-3.0")
+local EP = E:NewModule("BounceCombo", "AceHook-3.0", "AceEvent-3.0")
 
-P.comboBounce = {
+P.bounceCombo = {
     enable = true,
     scale = 1.3,
     duration = 0.08,
@@ -37,6 +37,8 @@ local function CreateBounceAnimation(frame)
     bounce._scaleDown = scaleDown
     frame.bounceAnim = bounce
 
+    bounce:SetScript("OnFinished", function() frame:SetScale(1) end)
+
     UpdateAnimationSettings(frame)
 end
 
@@ -44,7 +46,13 @@ function EP:PostUpdateClassPower(element, cur, _, _, powerType)
     if not db.enable or powerType ~= "COMBO_POINTS" then return end
     if not element or not cur then return end
 
-    local previous = element._previousCombo or 0
+    if self._targetJustChanged then
+        element._bounceComboPrevious = cur
+        self._targetJustChanged = nil
+        return
+    end
+
+    local previous = element._bounceComboPrevious or 0
 
     -- Reset tracking if points spent or target changed
     if cur < previous then
@@ -62,7 +70,7 @@ function EP:PostUpdateClassPower(element, cur, _, _, powerType)
         end
     end
 
-    element._previousCombo = cur
+    element._bounceComboPrevious = cur
 end
 
 -- Refresh all existing animations when options change
@@ -90,9 +98,9 @@ function EP:HookClassPower()
 end
 
 function EP:InsertOptions()
-    if E.Options.args.comboBounce then return end
+    if E.Options.args.bounceCombo then return end
 
-    E.Options.args.comboBounce = {
+    E.Options.args.bounceCombo = {
         order = 100,
         type = "group",
         name = L["Combo Bounce"],
@@ -106,11 +114,13 @@ function EP:InsertOptions()
                 order = 1,
                 type = "toggle",
                 name = L["Enable"],
+                desc = L["Enable the bounce animation when combo points are gained."],
             },
             scale = {
                 order = 2,
                 type = "range",
                 name = L["Scale"],
+                desc = L["How much the combo point grows at the peak of the bounce."],
                 min = 1.1, max = 2.0, step = 0.01,
                 disabled = function() return not db.enable end,
             },
@@ -118,6 +128,7 @@ function EP:InsertOptions()
                 order = 3,
                 type = "range",
                 name = L["Speed"],
+                desc = L["Duration of each half of the bounce (scale up, then scale down)."],
                 min = 0.01, max = 0.5, step = 0.01,
                 disabled = function() return not db.enable end,
             },
@@ -125,10 +136,26 @@ function EP:InsertOptions()
     }
 end
 
+function EP:RefreshDB()
+    db = E.db.bounceCombo
+    self:UpdateAllSettings()
+end
+
 function EP:Initialize()
-    db = E.db.comboBounce
+    db = E.db.bounceCombo
     self:InsertOptions()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "HookClassPower")
+    self:RegisterEvent("PLAYER_TARGET_CHANGED", function() self._targetJustChanged = true end)
+
+    if E.data then
+        E.data:RegisterCallback("OnProfileChanged", function() EP:RefreshDB() end)
+        E.data:RegisterCallback("OnProfileCopied",  function() EP:RefreshDB() end)
+        E.data:RegisterCallback("OnProfileReset",   function() EP:RefreshDB() end)
+    else
+        E.db.RegisterCallback(E.db, "OnProfileChanged", function() EP:RefreshDB() end)
+        E.db.RegisterCallback(E.db, "OnProfileCopied",  function() EP:RefreshDB() end)
+        E.db.RegisterCallback(E.db, "OnProfileReset",   function() EP:RefreshDB() end)
+    end
 end
 
 E:RegisterModule(EP:GetName())

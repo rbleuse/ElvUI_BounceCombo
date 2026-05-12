@@ -1,0 +1,8 @@
+## Interface: 11508
+## Title: |cff1784d1ElvUI|r Bounce Combo |cfd9b9b9bClassic|r
+## Notes: Adds a bounce animation to ElvUI's combo point display when combo points are gained.
+## Author: Spanja
+## Version: 1.1
+## RequiredDeps: ElvUI
+
+ElvUI_BounceCombo.lua
