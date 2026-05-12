@@ -5,6 +5,7 @@ P.bounceCombo = {
     enable = true,
     scale = 1.3,
     duration = 0.08,
+    smooth = true,
 }
 
 local db
@@ -19,6 +20,14 @@ local function UpdateAnimationSettings(frame)
     anim._scaleUp:SetDuration(duration)
     anim._scaleDown:SetScale(invScale, invScale)
     anim._scaleDown:SetDuration(duration)
+
+    if db.smooth then
+        anim._scaleUp:SetSmoothing("OUT")
+        anim._scaleDown:SetSmoothing("IN")
+    else
+        anim._scaleUp:SetSmoothing("NONE")
+        anim._scaleDown:SetSmoothing("NONE")
+    end
 end
 
 local function CreateBounceAnimation(frame)
@@ -37,20 +46,12 @@ local function CreateBounceAnimation(frame)
     bounce._scaleDown = scaleDown
     frame.bounceAnim = bounce
 
-    bounce:SetScript("OnFinished", function() frame:SetScale(1) end)
-
     UpdateAnimationSettings(frame)
 end
 
 function EP:PostUpdateClassPower(element, cur, _, _, powerType)
     if not db.enable or powerType ~= "COMBO_POINTS" then return end
     if not element or not cur then return end
-
-    if self._targetJustChanged then
-        element._bounceComboPrevious = cur
-        self._targetJustChanged = nil
-        return
-    end
 
     local previous = element._bounceComboPrevious or 0
 
@@ -132,6 +133,13 @@ function EP:InsertOptions()
                 min = 0.01, max = 0.5, step = 0.01,
                 disabled = function() return not db.enable end,
             },
+            smooth = {
+                order = 4,
+                type = "toggle",
+                name = L["Smooth"],
+                desc = L["Apply easing to the animation (snappy pop out, gentle ease back) instead of a linear motion."],
+                disabled = function() return not db.enable end,
+            },
         },
     }
 end
@@ -145,7 +153,6 @@ function EP:Initialize()
     db = E.db.bounceCombo
     self:InsertOptions()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "HookClassPower")
-    self:RegisterEvent("PLAYER_TARGET_CHANGED", function() self._targetJustChanged = true end)
 
     if E.data then
         E.data:RegisterCallback("OnProfileChanged", function() EP:RefreshDB() end)
