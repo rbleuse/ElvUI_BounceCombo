@@ -12,21 +12,23 @@ local db
 local function UpdateAnimationSettings(frame)
     if not frame or not frame.bounceAnim then return end
     local anim = frame.bounceAnim
+    local scaleUp = anim._scaleUp
+    local scaleDown = anim._scaleDown
     local scale = db.scale
     local duration = db.duration
     local invScale = 1 / scale
 
-    anim._scaleUp:SetScale(scale, scale)
-    anim._scaleUp:SetDuration(duration)
-    anim._scaleDown:SetScale(invScale, invScale)
-    anim._scaleDown:SetDuration(duration)
+    scaleUp:SetScale(scale, scale)
+    scaleUp:SetDuration(duration)
+    scaleDown:SetScale(invScale, invScale)
+    scaleDown:SetDuration(duration)
 
     if db.smooth then
-        anim._scaleUp:SetSmoothing("OUT")
-        anim._scaleDown:SetSmoothing("IN")
+        scaleUp:SetSmoothing("OUT")
+        scaleDown:SetSmoothing("IN")
     else
-        anim._scaleUp:SetSmoothing("NONE")
-        anim._scaleDown:SetSmoothing("NONE")
+        scaleUp:SetSmoothing("NONE")
+        scaleDown:SetSmoothing("NONE")
     end
 end
 
@@ -154,15 +156,10 @@ function EP:Initialize()
     self:InsertOptions()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "HookClassPower")
 
-    if E.data then
-        E.data:RegisterCallback("OnProfileChanged", function() EP:RefreshDB() end)
-        E.data:RegisterCallback("OnProfileCopied",  function() EP:RefreshDB() end)
-        E.data:RegisterCallback("OnProfileReset",   function() EP:RefreshDB() end)
-    else
-        E.db.RegisterCallback(E.db, "OnProfileChanged", function() EP:RefreshDB() end)
-        E.db.RegisterCallback(E.db, "OnProfileCopied",  function() EP:RefreshDB() end)
-        E.db.RegisterCallback(E.db, "OnProfileReset",   function() EP:RefreshDB() end)
-    end
+    local cb = E.data or E.db
+    cb.RegisterCallback(EP, "OnProfileChanged", "RefreshDB")
+    cb.RegisterCallback(EP, "OnProfileCopied",  "RefreshDB")
+    cb.RegisterCallback(EP, "OnProfileReset",   "RefreshDB")
 end
 
 E:RegisterModule(EP:GetName())
