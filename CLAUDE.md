@@ -18,7 +18,7 @@ The addon is a single-file ElvUI plugin ([ElvUI_BounceCombo.lua](ElvUI_BounceCom
 - **Default profile:** Defaults are stored in `P.bounceCombo` (ElvUI's profile table), picked up automatically by ElvUI's db system. Keys: `enable`, `scale`, `duration`, `smooth`.
 - **Hook strategy:** On `PLAYER_ENTERING_WORLD` (`HookClassPower`), `SecureHook` patches `ClassPower.PostUpdate` on `ElvUF_Player`, then unregisters the event. The handler `PostUpdateClassPower` only animates the *newly gained* combo points (tracked via `element._bounceComboPrevious`) and ignores non-`COMBO_POINTS` power types. Animations are created lazily on first combo point gain per frame.
 - **Animation:** Each combo point frame gets a `bounceAnim` AnimationGroup with two chained Scale animations (`_scaleUp` → `_scaleDown`). Settings (scale, duration, smoothing) are applied at creation in `CreateBounceAnimation` and refreshed via `UpdateAnimationSettings`/`UpdateAllSettings` when the user changes options. `smooth` toggles easing (`OUT`/`IN`) vs. linear (`NONE`).
-- **Options panel:** Injected into `E.Options.args.bounceCombo` (AceConfig group), surfaced in ElvUI's config UI. Profile changes are re-read via `RefreshDB`, wired through ElvUI's `OnProfileChanged`/`OnProfileCopied`/`OnProfileReset` callbacks.
+- **Options panel:** Registered through LibElvUIPlugin (`E.Libs.EP:RegisterPlugin`), which lists the addon in ElvUI's plugin panel and defers `InsertOptions` until `ElvUI_Options` loads. Options are injected into `E.Options.args.bounceCombo` (AceConfig group). Profile changes are re-read via `RefreshDB`, wired through `E.data`'s `OnProfileChanged`/`OnProfileCopied`/`OnProfileReset` callbacks.
 
 ## Development Notes
 

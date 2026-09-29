@@ -1,5 +1,6 @@
+local AddOnName = ...
 local E, L, _, P = unpack(ElvUI)
-local EP = E:NewModule("BounceCombo", "AceHook-3.0", "AceEvent-3.0")
+local BC = E:NewModule("BounceCombo", "AceHook-3.0", "AceEvent-3.0")
 
 P.bounceCombo = {
     enable = true,
@@ -51,11 +52,16 @@ local function CreateBounceAnimation(frame)
     UpdateAnimationSettings(frame)
 end
 
-function EP:PostUpdateClassPower(element, cur, _, _, powerType)
-    if not db.enable or powerType ~= "COMBO_POINTS" then return end
+function BC:PostUpdateClassPower(element, cur, _, _, powerType)
+    if powerType ~= "COMBO_POINTS" then return end
     if not element or not cur then return end
 
+    -- Keep tracking up to date even while disabled, so re-enabling
+    -- doesn't bounce points that were gained in the meantime
     local previous = element._bounceComboPrevious or 0
+    element._bounceComboPrevious = cur
+
+    if not db.enable then return end
 
     -- Reset tracking if points spent or target changed
     if cur < previous then
@@ -72,12 +78,10 @@ function EP:PostUpdateClassPower(element, cur, _, _, powerType)
             point.bounceAnim:Play()
         end
     end
-
-    element._bounceComboPrevious = cur
 end
 
 -- Refresh all existing animations when options change
-function EP:UpdateAllSettings()
+function BC:UpdateAllSettings()
     local playerFrame = _G.ElvUF_Player
     if playerFrame and playerFrame.ClassPower then
         local element = playerFrame.ClassPower
@@ -90,7 +94,7 @@ function EP:UpdateAllSettings()
 end
 
 -- Hook safely after UI loads
-function EP:HookClassPower()
+function BC:HookClassPower()
     local playerFrame = _G.ElvUF_Player
     if not (playerFrame and playerFrame.ClassPower) then return end
 
@@ -100,7 +104,7 @@ function EP:HookClassPower()
     self:UnregisterEvent("PLAYER_ENTERING_WORLD")
 end
 
-function EP:InsertOptions()
+function BC:InsertOptions()
     if E.Options.args.bounceCombo then return end
 
     E.Options.args.bounceCombo = {
@@ -110,7 +114,7 @@ function EP:InsertOptions()
         get = function(info) return db[info[#info]] end,
         set = function(info, value)
             db[info[#info]] = value
-            EP:UpdateAllSettings()
+            BC:UpdateAllSettings()
         end,
         args = {
             enable = {
@@ -130,7 +134,7 @@ function EP:InsertOptions()
             duration = {
                 order = 3,
                 type = "range",
-                name = L["Speed"],
+                name = L["Duration"],
                 desc = L["Duration of each half of the bounce (scale up, then scale down)."],
                 min = 0.01, max = 0.5, step = 0.01,
                 disabled = function() return not db.enable end,
@@ -146,20 +150,22 @@ function EP:InsertOptions()
     }
 end
 
-function EP:RefreshDB()
+function BC:RefreshDB()
     db = E.db.bounceCombo
     self:UpdateAllSettings()
 end
 
-function EP:Initialize()
+function BC:Initialize()
     db = E.db.bounceCombo
-    self:InsertOptions()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "HookClassPower")
 
-    local cb = E.data or E.db
-    cb.RegisterCallback(EP, "OnProfileChanged", "RefreshDB")
-    cb.RegisterCallback(EP, "OnProfileCopied",  "RefreshDB")
-    cb.RegisterCallback(EP, "OnProfileReset",   "RefreshDB")
+    -- Lists the plugin in ElvUI's plugin panel and defers options
+    -- injection until ElvUI_Options is loaded
+    E.Libs.EP:RegisterPlugin(AddOnName, function() BC:InsertOptions() end)
+
+    E.data.RegisterCallback(BC, "OnProfileChanged", "RefreshDB")
+    E.data.RegisterCallback(BC, "OnProfileCopied",  "RefreshDB")
+    E.data.RegisterCallback(BC, "OnProfileReset",   "RefreshDB")
 end
 
-E:RegisterModule(EP:GetName())
+E:RegisterModule(BC:GetName())
